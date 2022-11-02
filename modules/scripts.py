@@ -7,7 +7,7 @@ import modules.ui as ui
 import gradio as gr
 
 from modules.processing import StableDiffusionProcessing
-from modules import shared, paths, script_callbacks, extensions
+from modules import shared, paths, script_callbacks
 
 AlwaysVisible = object()
 
@@ -64,16 +64,7 @@ class Script:
     def process(self, p, *args):
         """
         This function is called before processing begins for AlwaysVisible scripts.
-        You can modify the processing object (p) here, inject hooks, etc.
-        args contains all values returned by components from ui()
-        """
-
-        pass
-
-    def postprocess(self, p, processed, *args):
-        """
-        This function is called after processing ends for AlwaysVisible scripts.
-        args contains all values returned by components from ui()
+        scripts. You can modify the processing object (p) here, inject hooks, etc.
         """
 
         pass
@@ -107,8 +98,17 @@ def list_scripts(scriptdirname, extension):
         for filename in sorted(os.listdir(basedir)):
             scripts_list.append(ScriptFile(paths.script_path, filename, os.path.join(basedir, filename)))
 
-    for ext in extensions.active():
-        scripts_list += ext.list_files(scriptdirname, extension)
+    extdir = os.path.join(paths.script_path, "extensions")
+    if os.path.exists(extdir):
+        for dirname in sorted(os.listdir(extdir)):
+            dirpath = os.path.join(extdir, dirname)
+            scriptdirpath = os.path.join(dirpath, scriptdirname)
+
+            if not os.path.isdir(scriptdirpath):
+                continue
+
+            for filename in sorted(os.listdir(scriptdirpath)):
+                scripts_list.append(ScriptFile(dirpath, filename, os.path.join(scriptdirpath, filename)))
 
     scripts_list = [x for x in scripts_list if os.path.splitext(x.path)[1].lower() == extension and os.path.isfile(x.path)]
 
@@ -118,7 +118,11 @@ def list_scripts(scriptdirname, extension):
 def list_files_with_name(filename):
     res = []
 
-    dirs = [paths.script_path] + [ext.path for ext in extensions.active()]
+    dirs = [paths.script_path]
+
+    extdir = os.path.join(paths.script_path, "extensions")
+    if os.path.exists(extdir):
+        dirs += [os.path.join(extdir, d) for d in sorted(os.listdir(extdir))]
 
     for dirpath in dirs:
         if not os.path.isdir(dirpath):
@@ -232,7 +236,7 @@ class ScriptRunner:
             with gr.Group():
                 create_script_ui(script, inputs, inputs_alwayson)
 
-        dropdown = gr.Dropdown(label="Script", elem_id="script_list", choices=["None"] + self.titles, value="None", type="index")
+        dropdown = gr.Dropdown(label="Script", choices=["None"] + self.titles, value="None", type="index")
         dropdown.save_to_config = True
         inputs[0] = dropdown
 
@@ -285,22 +289,13 @@ class ScriptRunner:
 
         return processed
 
-    def process(self, p):
+    def run_alwayson_scripts(self, p):
         for script in self.alwayson_scripts:
             try:
                 script_args = p.script_args[script.args_from:script.args_to]
                 script.process(p, *script_args)
             except Exception:
-                print(f"Error running process: {script.filename}", file=sys.stderr)
-                print(traceback.format_exc(), file=sys.stderr)
-
-    def postprocess(self, p, processed):
-        for script in self.alwayson_scripts:
-            try:
-                script_args = p.script_args[script.args_from:script.args_to]
-                script.postprocess(p, processed, *script_args)
-            except Exception:
-                print(f"Error running postprocess: {script.filename}", file=sys.stderr)
+                print(f"Error running alwayson script: {script.filename}", file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
 
     def reload_sources(self, cache):

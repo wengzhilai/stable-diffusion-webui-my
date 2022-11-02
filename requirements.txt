@@ -12,7 +12,7 @@ opencv-python
 requests
 piexif
 Pillow
-pytorch_lightning==1.7.7
+pytorch_lightning
 realesrgan
 scikit-image>=0.19
 timm==0.4.12
@@ -26,4 +26,3 @@ torchdiffeq
 kornia
 lark
 inflection
-GitPython

@@ -56,9 +56,9 @@ class InterrogateModels:
         import clip
 
         if self.running_on_cpu:
-            model, preprocess = clip.load(clip_model_name, device="cpu", download_root=shared.cmd_opts.clip_models_path)
+            model, preprocess = clip.load(clip_model_name, device="cpu")
         else:
-            model, preprocess = clip.load(clip_model_name, download_root=shared.cmd_opts.clip_models_path)
+            model, preprocess = clip.load(clip_model_name)
 
         model.eval()
         model = model.to(devices.device_interrogate)

@@ -42,8 +42,6 @@ class PersonalizedBase(Dataset):
         self.lines = lines
 
         assert data_root, 'dataset directory not specified'
-        assert os.path.isdir(data_root), "Dataset directory doesn't exist"
-        assert os.listdir(data_root), "Dataset directory is empty"
 
         cond_model = shared.sd_model.cond_stage_model
 
@@ -88,12 +86,12 @@ class PersonalizedBase(Dataset):
         assert len(self.dataset) > 0, "No images have been found in the dataset."
         self.length = len(self.dataset) * repeats // batch_size
 
-        self.dataset_length = len(self.dataset)
+        self.initial_indexes = np.arange(len(self.dataset))
         self.indexes = None
         self.shuffle()
 
     def shuffle(self):
-        self.indexes = np.random.permutation(self.dataset_length)
+        self.indexes = self.initial_indexes[torch.randperm(self.initial_indexes.shape[0]).numpy()]
 
     def create_text(self, filename_text):
         text = random.choice(self.lines)
